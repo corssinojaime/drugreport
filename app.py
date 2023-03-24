@@ -345,9 +345,9 @@ def update_line_chart(indicator, continent, yrs, theme, educ):
         title="Gapminder %s: %s theme" % (yrs[1], template_from_url(theme)),
     )
 
-
     return fig, fig_scatter, data
 
 
 if __name__ == "__main__":
+
     app.run_server(debug=True)
