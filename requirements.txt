@@ -7,4 +7,4 @@ dash_daq
 dash_html_components
 numpy
 pandas
-plotly0
+plotly
