@@ -1,0 +1,10 @@
+gunicorn
+dash
+dash_bootstrap_components
+dash_bootstrap_templates
+dash_core_components
+dash_daq
+dash_html_components
+numpy
+pandas
+plotly
