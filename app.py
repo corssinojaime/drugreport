@@ -9,6 +9,10 @@ import dash_daq as daq
 import dash_bootstrap_components as dbc
 
 deaths = pd.read_csv('deaths-drug-overdoses.csv')
+dr_all = pd.read_csv('death-rates-from-drug-use-disorders.csv')
+
+dr_all.rename(columns={'Deaths - Drug use disorders - Sex: Both - Age: Age-standardized (Rate)':'deaths'}, inplace=True)
+#dr_all.head(5)
 
 # fig = px.bar(deaths, x = 'Year', y='Deaths - Opioid use disorders - Sex: Both - Age: All Ages (Number)', color='Entity')
 df = px.data.gapminder()
@@ -26,8 +30,8 @@ drugs_list = ['Opioid','Cocaine','Amphetamine','Other']
 deaths_colnames = {
     'Deaths - Opioid use disorders - Sex: Both - Age: All Ages (Number)': drugs_list[0],
     'Deaths - Cocaine use disorders - Sex: Both - Age: All Ages (Number)': drugs_list[1],
-    'Deaths - Other drug use disorders - Sex: Both - Age: All Ages (Number)': drugs_list[3],
-    'Deaths - Amphetamine use disorders - Sex: Both - Age: All Ages (Number)': drugs_list[2]
+    'Deaths - Amphetamine use disorders - Sex: Both - Age: All Ages (Number)': drugs_list[2],
+    'Deaths - Other drug use disorders - Sex: Both - Age: All Ages (Number)': drugs_list[3]
 }
 
 deaths.rename(columns=deaths_colnames, inplace=True)
@@ -78,9 +82,9 @@ radio_drugs = dbc.RadioItems(
     className='radio',
     options=[dict(label='Opioid', value=0),
              dict(label='Cocaine', value=1),
-             dict(label='Amphetamine', value=2)
-             #dict(label='Other', value=3),
-             #dict(label='All Drugs', value=3)
+             dict(label='Amphetamine', value=2),
+             dict(label='Other', value=3),
+             dict(label='All Drugs', value=4)
              ],
     value=0,
     inline=True
@@ -122,6 +126,7 @@ drop_continent = dcc.Dropdown(
     style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a',
            'border-color': '#ebb36a'}
 )
+
 
 drop_country = dcc.Dropdown(
         id = 'drop_country',
@@ -206,7 +211,7 @@ app.layout = html.Div([
                 
                 html.Div([
                     drop_continent,
-                    html.Br(),
+                    html.Br()
                    
                 ], style={'width': '45%', 'font-size': '13px'}),
             ], className='row'),
@@ -222,8 +227,10 @@ app.layout = html.Div([
         ], className='box', style={'width': '50%', 'padding-bottom': '0px'}),
 
         html.Div([
-            html.Label("2. Title here", style={'font-size': 'medium'}),
+            html.Label("European Countries Vs Deaths by Drug type", style={'font-size': 'medium'}),
             html.Br(),
+            html.Br(),
+            #html.Br(),
             radio_drugs,
             html.Div([
                     html.Label(id='choose_country', style= {'margin': '10px'}),
@@ -258,12 +265,12 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.P(['Group name', html.Br(), 'Names'],
+            html.P(['Group name', html.Br(), 'Corssino Tchavana 20220597, Leo Allgaier 20220635, Hubert Oberhauser 20220628'],
                    style={'font-size': '12px'}),
         ], style={'width': '60%'}),
         html.Div([
             html.P(['Sources ', html.Br(), html.A('Our World in Data', href='https://ourworldindata.org/', target='_blank'), ', ', html.A(
-                'Food and Agriculture Organization of the United Nations', href='http://www.fao.org/faostat/en/#data', target='_blank')], style={'font-size': '12px'})
+                'Deaths from illicit drug overdoses, World, 1990 to 2019', href='http://ghdx.healthdata.org/gbd-results-tool', target='_blank')], style={'font-size': '12px'})
         ], style={'width': '37%'}),
     ], className='footer', style={'display': 'flex'}),
     # ], className='main'),
@@ -295,24 +302,39 @@ def update_map(year, continent, drug):
         drug_label = 'Cocaine'
     if drug == 2:
         drug_label = 'Amphetamine'
+    if drug == 3:
+        drug_label = 'Other'
 
+
+    death_sub = dr_all[dr_all['Year'].isin(year)]
+
+
+    #death_sub = deaths[(deaths['drug'] == drug_label) & (deaths['Year'].isin(year))]
+
+   # print("Begin", continent," droga ", drug, "label: ", drug_label, "shape....", death_sub.shape)
+    #title = ""
+
+    if continent == "world":
+        title ='Death Rates in the {} '.format(continent)
+    else:
+        title ='Death Rates in {} '.format(continent)
     
-    death_sub = deaths[(deaths['drug'] == drug_label) & (deaths['Year'].isin(year))]
 
-    print("Begin", continent," droga ", drug, "label: ", drug_label, "shape....", death_sub.shape)
-
-    title ='Number of deaths caused by {} drug '.format(death_sub['drug'].unique()[0])  #font_color = '#363535',
+    #title ='Number of deaths caused by {} drug '.format(death_sub['drug'].unique()[0])  #font_color = '#363535',
     data_slider = []
     data_each_yr = dict(type='choropleth',
                         locations = death_sub['Entity'],
                         locationmode='country names',
                         autocolorscale = False,
-                        z=np.log(death_sub['total'].astype(float)),
-                        zmin=0, 
-                        zmax = np.log(deaths[deaths['drug']== drug_label]['total'].max()),
+                        #z=np.log(death_sub['total'].astype(float)),
+                        z=death_sub['deaths'].astype(float),
+                        zmin=0,
+                        zmax = death_sub['deaths'].max(),
+                        #zmax = np.log(deaths[deaths['drug']== drug_label]['total'].max()),
                         colorscale = ["#ffe2bd", "#006837"],   
                         marker_line_color= 'rgba(0,0,0,0)',
-                        colorbar= {'title':'Tonnes (log)'},#Tonnes in logscale
+                        colorbar= {'title':'death rates'},#Tonnes in logscale
+                        #colorbar= {'title':'Tonnes (log)'},#Tonnes in logscale
                         colorbar_lenmode='fraction',
                         colorbar_len=0.8,
                         colorbar_x=1,
@@ -341,40 +363,63 @@ def update_map(year, continent, drug):
 @ app.callback(
     [
         #Output('first_graph', 'figure'),       
-        Output('plt_lines', 'figure')
+        Output('plt_lines', 'figure'),
+        #Output(component_id='drop_country', component_property='multi'),
     ],
     [
-        Input('drop_country', 'value'),
-        Input('drug_type', 'value')
+        Input('drug_type', 'value'),
+        Input('drop_country', 'value')
         #Input('choose_country', 'value')
     ]
 )
-def update_chart(country, drug):    
+def update_chart(drug, country):
+    #multi = True
+    #if country is None:        
+    #    return
 
     drug_label = ''
+    
     if drug == 0:
         drug_label = [drugs_list[0]]
     if drug == 1:
         drug_label = [drugs_list[1]]
     if drug == 2:
         drug_label = [drugs_list[2]]
-    #if drug == 3:
-    #    drug_label = drugs_list
-
-    deaths_sub = deaths[(deaths["Entity"].isin(country)) & (deaths['drug'].isin(drug_label))]    
-
-    fig2 = px.line(deaths_sub,
-                  x="Year",
-                  y='total',
-                  color='Entity')
+    if drug == 3:
+        drug_label = [drugs_list[3]]
+    
+    if drug == 4:
+        #multi = False
+        #print("pass 2 ", country)
+        #if country == []:
+        #    country = 'Portugal'
+        #country = [country]   
+        deaths_sub = deaths[deaths["Entity"].isin(country)]
+        fig2 = px.line(deaths_sub,
+                       x="Year",
+                       y='total',
+                       color='drug',
+                       markers=True)
+    else:
+        #multi = True     
+        #print("length: ",country, " -> ",  len(country))
+        #country = [country] 
+        deaths_sub = deaths[(deaths["Entity"].isin(country)) & (deaths['drug'].isin(drug_label))]    
+        fig2 = px.line(deaths_sub,
+                       x="Year",
+                       y='total',
+                       color='Entity',
+                       markers=True)
+        
+    #fig2.update_traces(mode='markers+lines')
 
     fig2 = fig2.update_layout({'margin': dict(t=0, l=0, r=0, b=0),
-                               'paper_bgcolor': '#F9F9F8',
-                               'font_color': '#363535'})
+                                'font_color': '#363535',
+                                'paper_bgcolor':'rgba(0,0,0,0)',
+                                'plot_bgcolor':'rgba(0,0,0,0)'})
     
-    
+    #print("dcc Multi = ", multi)
     return [go.Figure(fig2)]
-
 
 
 
