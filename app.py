@@ -24,7 +24,6 @@ dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.mi
 # app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, "/assets/dbc.min.css"])
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, dbc_css])
 
-
 drugs_list = ['Opioid','Cocaine','Amphetamine','Other']
 
 deaths_colnames = {
@@ -177,9 +176,9 @@ fig_drugs = fig_drugs.update_layout({'margin' : dict(t=0, l=0, r=0, b=10),
 
 
 
-##############################################
-################### LAYOUT ###################
-##############################################
+##########################################################################################################################################
+################################################################# LAYOUT #################################################################
+##########################################################################################################################################
 
 
 app = dash.Dash(__name__)
@@ -197,8 +196,6 @@ app.layout = html.Div([
                 ], className='header', style={'width': '97%', 'padding-bottom': '10px'}),
 
     html.Div([
-
-
 
         html.Div([
             
@@ -244,22 +241,16 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.Label("3. Title here", style={'font-size': 'medium'}),
-            html.Br(),
-            html.Label('Click on it to know more!',
-                       style={'font-size': '9px'}),
+            html.Label("Deaths by Drug in Euro Countries", style={'font-size': 'medium'}),
             html.Br(),
             html.Br(),
             dcc.Graph(figure=fig_drugs)
         ], className='box', style={'width': '53%'}),
         html.Div([
-            html.Label("4. Title here", style={'font-size': 'medium'}),
-            html.Br(),
-            html.Label('Click on it to know more!',
-                       style={'font-size': '9px'}),
+            html.Label(id='title_bar', style={'font-size': 'medium'}),
             html.Br(),
             html.Br(),
-             dcc.Graph(id = 'first_graph')
+             dcc.Graph(id = 'plt_bar')
         ], className='box', style={'width': '50%'}),
     ], className='row'),
 
@@ -276,6 +267,12 @@ app.layout = html.Div([
     # ], className='main'),
     # ]),
 ])
+
+
+##########################################################################################################################################
+################################################################# APP CALLBACK ###########################################################
+##########################################################################################################################################
+
 
 
 @app.callback(
@@ -364,6 +361,8 @@ def update_map(year, continent, drug):
     [
         #Output('first_graph', 'figure'),       
         Output('plt_lines', 'figure'),
+        Output('plt_bar', 'figure'),
+        Output('title_bar','children')
         #Output(component_id='drop_country', component_property='multi'),
     ],
     [
@@ -377,8 +376,8 @@ def update_chart(drug, country):
     #if country is None:        
     #    return
 
-    drug_label = ''
-    
+    drug_label = 'test'
+    fig_bar = ""
     if drug == 0:
         drug_label = [drugs_list[0]]
     if drug == 1:
@@ -389,21 +388,25 @@ def update_chart(drug, country):
         drug_label = [drugs_list[3]]
     
     if drug == 4:
-        #multi = False
-        #print("pass 2 ", country)
-        #if country == []:
-        #    country = 'Portugal'
-        #country = [country]   
+
         deaths_sub = deaths[deaths["Entity"].isin(country)]
         fig2 = px.line(deaths_sub,
                        x="Year",
                        y='total',
                        color='drug',
                        markers=True)
+        
+        deaths_sub = euro_drugs.groupby(['drug'])['total'].sum().reset_index()
+
+
+        fig_bar = px.bar(deaths_sub,
+                     x="total",
+                     y='drug',
+                     orientation='h')
+        
+        title ='Total number of deaths by each drug'
+        
     else:
-        #multi = True     
-        #print("length: ",country, " -> ",  len(country))
-        #country = [country] 
         deaths_sub = deaths[(deaths["Entity"].isin(country)) & (deaths['drug'].isin(drug_label))]    
         fig2 = px.line(deaths_sub,
                        x="Year",
@@ -411,15 +414,37 @@ def update_chart(drug, country):
                        color='Entity',
                        markers=True)
         
-    #fig2.update_traces(mode='markers+lines')
+        deaths_sub = euro_drugs[euro_drugs['drug'].isin(drug_label)] 
+        deaths_sub = deaths_sub.groupby(['Entity'])['total'].sum().reset_index()
+        deaths_sub = deaths_sub.sort_values('total',ascending=True).tail(8)
+
+        fig_bar = px.bar(deaths_sub,
+                     x="total",
+                     y='Entity',
+                     orientation='h')
+        
+       
+        title ='Top 8 countries of deaths caused by {} drug'.format(*drug_label) 
+
 
     fig2 = fig2.update_layout({'margin': dict(t=0, l=0, r=0, b=0),
                                 'font_color': '#363535',
                                 'paper_bgcolor':'rgba(0,0,0,0)',
-                                'plot_bgcolor':'rgba(0,0,0,0)'})
+                                'plot_bgcolor':'rgba(0,0,0,0)',
+                                'xaxis_title' :'Year',
+                                'yaxis_title' :'Total # Cases'})
     
-    #print("dcc Multi = ", multi)
-    return [go.Figure(fig2)]
+    fig_bar = fig_bar.update_layout({'margin': dict(t=0, l=0, r=0, b=0),
+                                'font_color': '#363535',
+                                'paper_bgcolor':'rgba(0,0,0,0)',
+                                'plot_bgcolor':'rgba(0,0,0,0)',
+                                'xaxis_title' :'Total # Cases',
+                                'yaxis_title' :'Country'})
+    
+    
+
+
+    return [go.Figure(fig2),go.Figure(fig_bar),title]
 
 
 
