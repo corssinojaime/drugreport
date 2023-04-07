@@ -1,10 +1,11 @@
+
 gunicorn
-plotly
 dash
-requests
-dash_renderer
-dash-html-components
-dash-core-components
+dash_bootstrap_components
 dash_bootstrap_templates
-pandas
+dash_core_components
+dash_daq
+dash_html_components
 numpy
+pandas
+plotly
