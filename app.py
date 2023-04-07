@@ -294,7 +294,7 @@ app.layout = html.Div([
             dcc.Graph(figure=fig_drugs)
         ], className='box', style={'width': '53%'}),
         html.Div([
-            html.Label(id='Focus of national drug strategies in Europe (by end 2020)', style={'font-size': 'medium'}),
+            html.Label('Focus of national drug strategies in Europe (by end 2020)', style={'font-size': 'medium'}),
             html.Br(),
             html.Br(),
              dcc.Graph(figure=fig_choropleth)
