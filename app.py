@@ -7,9 +7,12 @@ from dash_bootstrap_templates import ThemeChangerAIO, template_from_url
 import plotly.graph_objs as go
 import dash_daq as daq
 import dash_bootstrap_components as dbc
+import os
 
 deaths = pd.read_csv('deaths-drug-overdoses.csv')
 dr_all = pd.read_csv('death-rates-from-drug-use-disorders.csv')
+focus = pd.read_csv('focus.csv')
+focus['text'] = focus['entity']+ '<br>' + focus['focus']
 
 dr_all.rename(columns={'Deaths - Drug use disorders - Sex: Both - Age: Age-standardized (Rate)':'deaths'}, inplace=True)
 #dr_all.head(5)
@@ -23,6 +26,8 @@ countries = deaths.Entity.unique()
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css"
 # app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, "/assets/dbc.min.css"])
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, dbc_css])
+
+
 
 drugs_list = ['Opioid','Cocaine','Amphetamine','Other']
 
@@ -52,7 +57,10 @@ deaths['euro'] = deaths["Entity"].isin(euro_countries) * 1
 
 euro_drugs = deaths[deaths['euro']==1].groupby(['euro', 'Entity','drug'])['total'].sum().reset_index()
 euro_drugs['perc'] = 100 * euro_drugs['total'] / euro_drugs.groupby(['euro', 'Entity'])['total'].transform('sum')
-
+euro_drugs['perc'] = euro_drugs['perc'].round(2)
+t8 = euro_drugs.groupby(['Entity'])['total'].sum().reset_index()
+t8 = t8.sort_values('total',ascending=True).tail(8)
+euro_drugs = euro_drugs[euro_drugs['Entity'].isin(t8['Entity'])]
 
 header = html.H4(
     "Drugs Report in Europe", className="bg-primary text-white p-2 mb-2 text-leftcenter"
@@ -168,11 +176,50 @@ badge = dbc.Button(
 
 
 fig_drugs = px.sunburst(euro_drugs, path = ['Entity','drug'], values = 'perc', 
-                    color = 'drug', color_discrete_sequence = px.colors.sequential.Peach_r).update_traces(hovertemplate = '%{label}<br>' + 'Global Grugs: %{value}%', textinfo = "label + percent entry") 
+                    color = 'drug', color_discrete_sequence = px.colors.sequential.Greens).update_traces(hovertemplate = '%{label}<br>' + 'Global Drugs: %{value}%', textinfo = "label + percent entry") 
 
 fig_drugs = fig_drugs.update_layout({'margin' : dict(t=0, l=0, r=0, b=10),
                         'paper_bgcolor': '#F9F9F8',
                         'font_color':'#363535'})
+
+### Last map
+
+data_slider = []
+data_each_yr = dict(type='choropleth',
+                        locations = focus['entity'],
+                        locationmode='country names',                        
+                        autocolorscale = False,
+                        z=focus['focus2'],                                              
+                        colorscale = ["#ffe2bd", "#006837"],
+                        #showscale=True,
+                        marker_line_color='#006837',
+                        text=focus['text'],                        
+                        colorbar=dict(title='', 
+                                      tickvals=[1, 2], 
+                                      ticktext=['Broader focus', 'Illicit drugs focus'],
+                                      tickmode='array',
+                                      thicknessmode='fraction',
+                                      ticklen=1,
+                                      tickcolor='#000'),                        
+                    )
+data_slider.append(data_each_yr)
+layout = dict(geo=dict(scope='europe',
+                            projection={'type': 'natural earth'},
+                            showlakes=True,
+                            lakecolor='rgb(255, 255, 255)',
+                            bgcolor= 'rgba(0,0,0,0)'),
+                    margin=dict(l=0,
+                                r=0,
+                                b=0,
+                                t=30,
+                                pad=0),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)')
+ 
+fig_choropleth = go.Figure(data=data_slider, layout=layout)
+fig_choropleth.update_geos(showcoastlines=False, showsubunits=True,showframe=True)
+
+###
 
 
 
@@ -241,16 +288,16 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.Label("Deaths by Drug in Euro Countries", style={'font-size': 'medium'}),
+            html.Label("Deaths by Drug in Euro Countries (Top 8)", style={'font-size': 'medium'}),
             html.Br(),
             html.Br(),
             dcc.Graph(figure=fig_drugs)
         ], className='box', style={'width': '53%'}),
         html.Div([
-            html.Label(id='title_bar', style={'font-size': 'medium'}),
+            html.Label(id='Focus of national drug strategies in Europe (by end 2020)', style={'font-size': 'medium'}),
             html.Br(),
             html.Br(),
-             dcc.Graph(id = 'plt_bar')
+             dcc.Graph(figure=fig_choropleth)
         ], className='box', style={'width': '50%'}),
     ], className='row'),
 
@@ -361,16 +408,18 @@ def update_map(year, continent, drug):
     [
         #Output('first_graph', 'figure'),       
         Output('plt_lines', 'figure'),
-        Output('plt_bar', 'figure'),
-        Output('title_bar','children')
+        #Output('plt_bar', 'figure'),
+        #Output('title_bar','children')
         #Output(component_id='drop_country', component_property='multi'),
     ],
     [
         Input('drug_type', 'value'),
-        Input('drop_country', 'value')
+        Input('drop_country', 'value'),
+        #Input('slider_years', 'value')
         #Input('choose_country', 'value')
     ]
 )
+
 def update_chart(drug, country):
     #multi = True
     #if country is None:        
@@ -404,7 +453,7 @@ def update_chart(drug, country):
                      y='drug',
                      orientation='h')
         
-        title ='Total number of deaths by each drug'
+        #title ='Total number of deaths by each drug'
         
     else:
         deaths_sub = deaths[(deaths["Entity"].isin(country)) & (deaths['drug'].isin(drug_label))]    
@@ -424,7 +473,7 @@ def update_chart(drug, country):
                      orientation='h')
         
        
-        title ='Top 8 countries of deaths caused by {} drug'.format(*drug_label) 
+        #title ='Top 8 countries of deaths caused by {} drug'.format(*drug_label) 
 
 
     fig2 = fig2.update_layout({'margin': dict(t=0, l=0, r=0, b=0),
@@ -444,7 +493,7 @@ def update_chart(drug, country):
     
 
 
-    return [go.Figure(fig2),go.Figure(fig_bar),title]
+    return [go.Figure(fig2)]
 
 
 
