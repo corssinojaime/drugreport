@@ -54,13 +54,12 @@ euro_countries = ['Austria','Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czechia
 
 deaths['euro'] = deaths["Entity"].isin(euro_countries) * 1
 
-
-euro_drugs = deaths[deaths['euro']==1].groupby(['euro', 'Entity','drug'])['total'].sum().reset_index()
-euro_drugs['perc'] = 100 * euro_drugs['total'] / euro_drugs.groupby(['euro', 'Entity'])['total'].transform('sum')
-euro_drugs['perc'] = euro_drugs['perc'].round(2)
+euro_drugs = deaths[deaths['euro']==1]
 t8 = euro_drugs.groupby(['Entity'])['total'].sum().reset_index()
 t8 = t8.sort_values('total',ascending=True).tail(8)
 euro_drugs = euro_drugs[euro_drugs['Entity'].isin(t8['Entity'])]
+euro_drugs = euro_drugs.loc[euro_drugs.index.repeat(euro_drugs.total)]
+
 
 header = html.H4(
     "Drugs Report in Europe", className="bg-primary text-white p-2 mb-2 text-leftcenter"
@@ -175,7 +174,7 @@ badge = dbc.Button(
 )
 
 
-fig_drugs = px.sunburst(euro_drugs, path = ['Entity','drug'], values = 'perc', 
+fig_drugs = px.sunburst(euro_drugs, path = ['Entity','drug'],
                     color = 'drug', color_discrete_sequence = px.colors.sequential.Greens).update_traces(hovertemplate = '%{label}<br>' + 'Global Drugs: %{value}%', textinfo = "label + percent entry") 
 
 fig_drugs = fig_drugs.update_layout({'margin' : dict(t=0, l=0, r=0, b=10),
@@ -214,11 +213,14 @@ layout = dict(geo=dict(scope='europe',
                                 t=30,
                                 pad=0),
                     paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)')
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    dragmode='pan', # disable zoom
+            )
+                    
  
 fig_choropleth = go.Figure(data=data_slider, layout=layout)
 fig_choropleth.update_geos(showcoastlines=False, showsubunits=True,showframe=True)
-
+fig_choropleth.update_xaxes(fixedrange=True)
 ###
 
 
