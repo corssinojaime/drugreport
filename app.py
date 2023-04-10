@@ -292,7 +292,7 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.Label("Deaths by Drug in Euro Countries (Top 8)", style={'font-size': 'medium'}),
+            html.Label("Deaths by Drug in Euro Countries", style={'font-size': 'medium'}),
             html.Br(),
             html.Br(),
             dcc.Graph(figure=fig_drugs)
