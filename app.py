@@ -57,7 +57,9 @@ deaths['euro'] = deaths["Entity"].isin(euro_countries) * 1
 euro_drugs = deaths[deaths['euro']==1]
 t8 = euro_drugs.groupby(['Entity'])['total'].sum().reset_index()
 t8 = t8.sort_values('total',ascending=True).tail(8)
-euro_drugs = euro_drugs[euro_drugs['Entity'].isin(t8['Entity'])]
+#euro_drugs = euro_drugs[euro_drugs['Entity'].isin(t8['Entity'])]
+euro_drugs['top8'] = euro_drugs['Entity'].isin(t8['Entity']) * 1
+euro_drugs['top8'] = np.where(euro_drugs['top8'] == 1, "Top 8", "Other Countries")
 euro_drugs = euro_drugs.loc[euro_drugs.index.repeat(euro_drugs.total)]
 
 
@@ -174,7 +176,7 @@ badge = dbc.Button(
 )
 
 
-fig_drugs = px.sunburst(euro_drugs, path = ['Entity','drug'],
+fig_drugs = px.sunburst(euro_drugs, path = ['top8','Entity','drug'], 
                     color = 'drug', color_discrete_sequence = px.colors.sequential.Greens).update_traces(hovertemplate = '%{label}<br>' + 'Global Drugs: %{value}%', textinfo = "label + percent entry") 
 
 fig_drugs = fig_drugs.update_layout({'margin' : dict(t=0, l=0, r=0, b=10),
@@ -305,7 +307,7 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.P(['Group name', html.Br(), 'Corssino Tchavana 20220597, Leo Allgaier 20220635, Hubert Oberhauser 20220628'],
+            html.P(['Group Members', html.Br(), 'Corssino Tchavana 20220597, Leo Allgaier 20220635, Hubert Oberhauser 20220628'],
                    style={'font-size': '12px'}),
         ], style={'width': '60%'}),
         html.Div([
